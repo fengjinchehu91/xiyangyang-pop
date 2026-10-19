@@ -14,6 +14,13 @@ export default function Footer({ t }: { t: Copy }) {
             <ExternalLink href={brand.deboxUrl} className="button button-white"><MessageCircle size={17} />{t.debox}<ArrowUpRight size={15} /></ExternalLink>
             <div className="qq-group"><Users size={17} /><span>{t.qq} <strong>{brand.qqGroup}</strong></span><CopyButton value={brand.qqGroup} t={t} label={t.copyQq} /></div>
           </div>
+          <ul className="qq-relay-groups">
+            {brand.qqRelayGroups.map((group, index) => <li className="qq-group qq-relay-group" key={group}>
+              <Users size={17} aria-hidden="true" />
+              <span>{t.qqRelayGroups[index]} <strong>{group}</strong></span>
+              <CopyButton value={group} t={t} label={`${t.copyQq} ${group}`} />
+            </li>)}
+          </ul>
           <ExternalLink href={brand.ecosystemXUrl} className="ecosystem-x">{t.x}<span>@Zypher_Network</span><ArrowUpRight size={15} /></ExternalLink>
         </div>
         <img src={brand.mascot} alt="" width="1536" height="1024" loading="lazy" decoding="async" className="community-character" />

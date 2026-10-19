@@ -14,6 +14,7 @@ export const brand = {
   telegramUrl: 'https://t.me/POPXYY1314',
   deboxUrl: 'https://m.debox.pro/group?id=eoaydsq4&code=zgvne98v',
   qqGroup: '1097270072',
+  qqRelayGroups: ['1128696905', '1128696207', '1073906047', '1131157206'],
   ecosystemXUrl: 'https://x.com/Zypher_Network',
   zypherUrl: 'https://www.zypher.network/',
 } as const;

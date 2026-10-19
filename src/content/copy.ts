@@ -54,6 +54,7 @@ export const copy = {
     transparencyNote: '近48小时归集按金库转入记录统计；累计转入、钱包余额与已执行回购金额是不同口径。',
     community: '与喜羊羊一起，共建社区', communitySub: '关注公告，了解机制与生态动态。',
     telegram: '加入 Telegram', debox: '加入 DeBox', qq: 'QQ群', copyQq: '复制QQ群号', x: 'POP / Zypher 生态官方 X',
+    qqRelayGroups: ['聊天中转1群', '聊天中转2群', '聊天中转3群', '聊天中转4群'],
     footer: '机制透明，社区共建。', backTop: '回到顶部',
     faqTitle: '关于机制，你可能想了解',
     faq: [
@@ -118,6 +119,7 @@ export const copy = {
     transparencyNote: '48h funding counts transfers from the vault. Collected inflows, wallet balances and executed buybacks are different measures.',
     community: 'Build the community with us.', communitySub: 'Follow announcements, mechanisms and ecosystem updates.',
     telegram: 'Join Telegram', debox: 'Join DeBox', qq: 'QQ group', copyQq: 'Copy QQ group number', x: 'POP / Zypher ecosystem X',
+    qqRelayGroups: ['Chat relay 1', 'Chat relay 2', 'Chat relay 3', 'Chat relay 4'],
     footer: 'Transparent mechanisms. Built together.', backTop: 'Back to top',
     faqTitle: 'A closer look at the mechanism',
     faq: [

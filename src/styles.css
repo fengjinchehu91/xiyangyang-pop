@@ -277,6 +277,11 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 .qq-group strong { margin-left: 4px; color: #fff; font-weight: 600; }
 .qq-group .icon-button { color: #deebd6; }
 .qq-group .icon-button:hover { background: #ffffff1a; }
+.qq-relay-groups { list-style: none; padding: 0; margin: 16px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 24px; max-width: 600px; }
+.qq-relay-group > svg { flex-shrink: 0; }
+.qq-relay-group > span:not(.copy-control) { flex: 1; }
+.qq-relay-group strong { display: inline-block; font-variant-numeric: tabular-nums; }
+.qq-relay-group .icon-button { min-width: 44px; height: 44px; }
 .ecosystem-x { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 5px 10px; color: #d0e1c8; font-size: 10px; margin-top: 21px; line-height: 1.8; }
 .ecosystem-x:hover { color: white; }
 .community-character { width: 300px; height: auto; aspect-ratio: 3 / 2; object-fit: contain; }
@@ -464,6 +469,7 @@ h1, h2, h3, p, dl, dd { margin: 0; }
   .community-links { flex-direction: column; align-items: flex-start; gap: 17px; }
   .community-links .button { font-size: 11px; }
   .qq-group { font-size: 11px; gap: 7px; }
+  .qq-relay-groups { grid-template-columns: 1fr; max-width: 320px; margin-top: 13px; }
   .ecosystem-x { font-size: 9px; gap: 4px 7px; margin-top: 17px; position: relative; z-index: 1; }
   .community-character { position: static; width: 180px; height: auto; justify-self: end; margin: 15px 0 0; opacity: .95; pointer-events: none; }
   .footer-layout { min-height: 145px; padding-block: 22px; flex-wrap: wrap; gap: 17px 20px; }
