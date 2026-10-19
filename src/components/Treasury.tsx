@@ -87,7 +87,9 @@ export default function Treasury({ t, locale, data, onRefresh, refreshing, confi
       </dl>
       <div className="quote-reference">
         {quote ? <><span>{quote.timestampKind === 'retrieved' ? t.quoteRetrieved : t.quoteTime}: {formatDateTime(quote.timestamp, locale)} (UTC+8)</span>
-          <TextLink href={quote.sourceUrl}>{t.quoteSource}</TextLink></> : <><span>{quoteLabel}</span>
+          <TextLink href={quote.sourceUrl}>{quote.sourceLabel || t.quoteSource}</TextLink>
+          {quote.sourceDetailsUrl && <><TextLink href={quote.sourceDetailsUrl}>Chainlink USDT/USD</TextLink>
+            <span>{t.spotQuoteNote}</span></>}</> : <><span>{quoteLabel}</span>
           {data.quote.status === 'error' && <button type="button" className="retry-button" onClick={onRefresh}><RefreshCw size={13} />{t.retry}</button>}</>}
       </div>
       <div className="treasury-bottom">

@@ -10,6 +10,8 @@
 
 报价使用 DEX Screener，受限时切至独立 GeckoTerminal，同池校验不放宽，页面来源链接反映实际供应商。保留报价获取时间并缓存成功结果 15 秒；每个供应商遇到 429 按 `Retry-After` 且至少冷却 60 秒，不绕过限流。Cache API 可同区域共享，模块缓存仅限当前 isolate；公开 API 仍存在全局限流风险，不承诺无限流量。
 
+行情接口不可用时，最后备用为同池链上现货价乘以 Chainlink USDT/USD 参考喂价，不是 POP 直接预言机。固定池、Oracle、实际精度和同区块轮次／时效均校验，不新增资金操作；不合格即保留美元数据不可用。Chainlink 代理 `0xB97Ad0E74fa7d920791E90258A6E2085088b4320` 来自官方 BNB 主网资料（900 秒心跳、8 位输出），池价格仍具有现货波动和操纵风险。核实资料见 [Chainlink 地址目录](https://docs.chain.link/data-feeds/price-feeds/addresses) 和该页指向的 [BNB 主网 RDD](https://reference-data-directory.vercel.app/feeds-bsc-mainnet.json)。
+
 **以下静态包交付说明属于旧版。旧 `release/` 和桌面压缩包不包含本次同源接口修复。仅上传静态 `dist/` 无法部署当前数据接口，不应据此覆盖现有生产站点。** 若迁移到不支持 Pages Functions 的主机，需要同时提供相同的只读 API，或显式配置全部外部直连 URL 后重新构建。
 
 ## 交付文件

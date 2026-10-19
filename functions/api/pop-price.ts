@@ -1,8 +1,10 @@
 import { parseMarketPayload, parseQuotePayload, popUsdPool,
   type QuoteEnvelope, type QuoteProvider } from '../../src/config/popMarket';
 import { isRecord, jsonResponse, readJsonLimited, type RequestContext } from '../_lib/http';
+import { readOnchainQuote } from '../_lib/onchainQuote';
 
-const providers: { id: QuoteProvider; url: string; accept: string }[] = [
+type HttpProvider = Exclude<QuoteProvider, 'pancakeswap-chainlink'>;
+const providers: { id: HttpProvider; url: string; accept: string }[] = [
   { id: 'dexscreener', url: `https://api.dexscreener.com/latest/dex/pairs/bsc/${popUsdPool}`,
     accept: 'application/json' },
   { id: 'geckoterminal', url: `https://api.geckoterminal.com/api/v2/networks/bsc/pools/${popUsdPool}?include=base_token,quote_token,dex`,
@@ -12,7 +14,7 @@ const providers: { id: QuoteProvider; url: string; accept: string }[] = [
 // Cache API shares state in a region; module state only coordinates this isolate.
 let cached: QuoteEnvelope | undefined;
 let inFlight: Promise<QuoteEnvelope> | undefined;
-const cooldownUntil: Record<QuoteProvider, number> = { dexscreener: 0, geckoterminal: 0 };
+const cooldownUntil: Record<HttpProvider, number> = { dexscreener: 0, geckoterminal: 0 };
 
 function retryDelay(value: string | null, now: number) {
   const delay = value && /^\d+$/.test(value) ? Number(value) * 1000
@@ -63,7 +65,7 @@ async function loadQuote(cache: Cache | undefined, origin: string): Promise<Quot
         })(),
         new Promise<never>((_, reject) => {
           timer = setTimeout(() => { controller.abort(); reject(new Error('Upstream request timed out')); },
-            Math.min(4_000, remaining));
+            Math.min(2_000, remaining));
         }),
       ]);
       parseMarketPayload(provider.id, payload);
@@ -72,7 +74,10 @@ async function loadQuote(cache: Cache | undefined, origin: string): Promise<Quot
       console.warn(`POP quote ${provider.id} unavailable:`, error instanceof Error ? error.message : 'Unknown upstream error');
     } finally { clearTimeout(timer); }
   }
-  throw new Error('No confirmed POP quote available');
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) throw new Error('No confirmed POP quote available');
+  const payload = await readOnchainQuote(Math.min(6_000, remaining));
+  return { provider: 'pancakeswap-chainlink', retrievedAt: Date.now(), payload };
 }
 
 async function readQuote(cache: Cache | undefined, origin: string): Promise<QuoteEnvelope> {
@@ -81,7 +86,8 @@ async function readQuote(cache: Cache | undefined, origin: string): Promise<Quot
   if (saved) {
     try {
       const value: unknown = await saved.json();
-      if (isRecord(value) && (value.provider === 'dexscreener' || value.provider === 'geckoterminal') &&
+      if (isRecord(value) && (value.provider === 'dexscreener' || value.provider === 'geckoterminal' ||
+          value.provider === 'pancakeswap-chainlink') &&
           typeof value.retrievedAt === 'number' && Date.now() - value.retrievedAt >= 0 &&
           Date.now() - value.retrievedAt < 15_000) {
         parseQuotePayload(value);

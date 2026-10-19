@@ -7,7 +7,8 @@ export interface QuoteSource {
   requestUrl: string;
   maxAgeMs: number;
   timestampKind?: 'market' | 'retrieved';
-  parse: (payload: unknown) => { usdPerToken: string; timestamp: number; sourceUrl?: string };
+  parse: (payload: unknown) => { usdPerToken: string; timestamp: number; sourceUrl?: string;
+    sourceLabel?: string; sourceDetailsUrl?: string };
 }
 
 const popAddress = '0xa3cfb853339b77f385b994799b015cb04b208fe6';

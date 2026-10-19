@@ -23,6 +23,8 @@ export interface UsdQuote {
   timestamp: number;
   timestampKind?: 'market' | 'retrieved';
   sourceUrl: string;
+  sourceLabel?: string;
+  sourceDetailsUrl?: string;
   tokenAddress: Address;
 }
 

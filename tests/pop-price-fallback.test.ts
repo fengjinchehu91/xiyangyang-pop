@@ -86,10 +86,10 @@ describe('independent POP quote providers', () => {
     expect((await request()).status).toBe(502);
     vi.advanceTimersByTime(59_999);
     expect((await request()).status).toBe(502);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls.filter(([url]) => url === dexUrl || url === geckoUrl)).toHaveLength(2);
     vi.advanceTimersByTime(1);
     await request();
-    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock.mock.calls.filter(([url]) => url === dexUrl || url === geckoUrl)).toHaveLength(4);
   });
 
   it('shares concurrent provider attempts within one isolate', async () => {
@@ -153,11 +153,11 @@ describe('independent POP quote providers', () => {
     expect(result.headers.get('cache-control')).toBe('no-store');
   });
 
-  it('keeps both attempts within eight seconds and aborts stalled requests', async () => {
+  it('keeps API and on-chain attempts within eight seconds and aborts stalled requests', async () => {
     fetchMock.mockImplementation(() => new Promise(() => {}));
     const pending = request();
     await vi.advanceTimersByTimeAsync(4_000);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls.filter(([url]) => url === dexUrl || url === geckoUrl)).toHaveLength(2);
     expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
     await vi.advanceTimersByTimeAsync(4_000);
     expect((await pending).status).toBe(502);

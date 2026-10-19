@@ -102,6 +102,7 @@ export async function readUsdQuote(source: QuoteSource): Promise<UsdQuote> {
   if (!/^\d+(\.\d{1,30})?$/.test(quote.usdPerToken) ||
       !/[1-9]/.test(quote.usdPerToken) || !Number.isFinite(quote.timestamp) ||
       new URL(quote.sourceUrl || source.sourceUrl).protocol !== 'https:' ||
+      (quote.sourceDetailsUrl !== undefined && new URL(quote.sourceDetailsUrl).protocol !== 'https:') ||
       Date.now() - quote.timestamp > Math.min(source.maxAgeMs, 300_000) ||
       quote.timestamp > Date.now() + 10_000) {
     throw new Error('Missing, invalid or stale price');
