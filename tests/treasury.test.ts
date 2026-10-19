@@ -311,6 +311,13 @@ describe('reliable USD quote validation', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ usdPerToken: '0.123', timestamp: Date.now() - 120_000 }))));
     await expect(data.readUsdQuote(feed())).rejects.toThrow('stale');
   });
+  it('preserves the verified provider source and original retrieval time', async () => {
+    const timestamp = Date.now() - 12_000;
+    const sourceUrl = 'https://www.geckoterminal.com/bsc/pools/0xe5ce5bc4785cd2a246151364f5a190cee3fdb142';
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}')));
+    expect(await data.readUsdQuote({ ...feed(), parse: () => ({ usdPerToken: '0.0003', timestamp, sourceUrl }) }))
+      .toMatchObject({ timestamp, sourceUrl });
+  });
   it('rejects a price for another token', async () => {
     await expect(data.readUsdQuote({ ...feed(), tokenAddress: holder })).rejects.toThrow('match POP');
   });

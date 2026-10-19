@@ -10,6 +10,8 @@ React + TypeScript + Vite + Tailwind CSS 构建的只读展示官网。适配电
 
 报价、黑洞余额和金库指标独立提交结果，慢指标不阻塞其他指标；移除 `AbortSignal.timeout()` 依赖，恢复网络时重试。页面可见时约每 30 秒读取主数据，历史归集约每 60 秒刷新；不是逐笔推送。报价仍为外部行情参考，显示获取时间而非虚构行情时间。Vite 开发模式保留直连公开数据源，生产预览应使用 Pages Functions 环境。
 
+生产排查确认 DEX Screener 对 Cloudflare 子请求返回 429，因此新增独立 GeckoTerminal 备用报价，继续核验同一 POP/USDT v3 池和资产身份，来源链接随供应商切换。成功报价短缓存 15 秒并保留原获取时间；限流后尊重 `Retry-After` 且至少冷却 60 秒，不换路径或伪装客户端绕过。缓存和冷却尽量由 Cache API 在同一区域共享，无新增绑定，不能保证跨所有区域的全局请求额度。两源都不可用时继续隐藏美元估值。
+
 ## 部署交付
 
 完整源码包为 `release/xiyangyang-source.zip`；可直接上传的静态包为 `release/xiyangyang-static.zip`。部署步骤与上线检查见 [DEPLOYMENT.md](DEPLOYMENT.md)。当前静态包用于域名根目录，正式站点启用 HTTPS；配置变更需要重新构建。
@@ -43,6 +45,7 @@ npm run preview
 | `src/config/chain.ts` | BSC、代币地址、可选金库与回购地址 |
 | `src/config/contracts.ts` | 经核实的托底价接口、累计销毁及回购记录读取器 |
 | `src/config/quotes.ts` | 经确认的 POP/USD 报价来源与解析器 |
+| `src/config/popMarket.ts` | 前后端共用的双供应商市场身份、价格和来源校验 |
 | `src/config/blackhole.ts` | 已核实黑洞地址的代币身份校验与查询入口 |
 | `src/config/valuation.ts` | 项目指定的 3000 万枚美元参考价展示口径 |
 | `src/data/treasury.ts` | 只读 RPC、实际 decimals、余额读取、状态与请求去重 |

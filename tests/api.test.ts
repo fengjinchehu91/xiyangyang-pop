@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { encodeFunctionData, parseAbi, toEventSelector } from 'viem';
 import { onRequest as rpc } from '../functions/api/rpc';
 import { onRequest as history } from '../functions/api/history';
-import { onRequest as price } from '../functions/api/pop-price';
 import { verifiedDeployment as deployment } from '../src/config/verified';
 
 const primary = 'https://bsc-dataseed.binance.org';
@@ -31,8 +30,11 @@ const market = () => ({ pairs: [{
   priceUsd: '0.0003207', liquidity: { usd: 716282.56 },
 }] });
 let fetchMock: ReturnType<typeof vi.fn>;
+let price: typeof import('../functions/api/pop-price')['onRequest'];
 
-beforeEach(() => {
+beforeEach(async () => {
+  vi.resetModules();
+  price = (await import('../functions/api/pop-price')).onRequest;
   fetchMock = vi.fn(async () => response(envelope('0x38')));
   vi.stubGlobal('fetch', fetchMock);
 });
@@ -130,7 +132,8 @@ describe('same-origin read-only chain APIs', () => {
     }));
     expect((await rpc(request('eth_chainId'))).status).toBe(503);
     expect((await price({ request: new Request('https://site.example/api/pop-price') })).status).toBe(502);
-    expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([primary, secondary, quoteUrl]);
+    expect(fetchMock.mock.calls.map((call) => call[0]).slice(0, 3)).toEqual([primary, secondary, quoteUrl]);
+    expect(fetchMock.mock.calls.every((call) => call[0] !== 'https://attacker.example/redirected')).toBe(true);
     for (const [, init] of fetchMock.mock.calls) expect(init.redirect).toBe('manual');
   });
 
@@ -178,13 +181,13 @@ describe('same-origin read-only chain APIs', () => {
 });
 
 describe('same-origin POP price API', () => {
-  it('uses the fixed market, returns the original payload and needs no AbortSignal.timeout', async () => {
+  it('uses the fixed market, preserves the payload in a sourced envelope and needs no AbortSignal.timeout', async () => {
     vi.spyOn(AbortSignal, 'timeout').mockImplementation(() => { throw new Error('Unavailable in old browsers'); });
     const payload = market();
     fetchMock.mockImplementation(async () => response(payload));
     const result = await price({ request: new Request('https://site.example/api/pop-price?url=https://attacker.example') });
     expect(result.status).toBe(200);
-    expect(await result.json()).toEqual(payload);
+    expect(await result.json()).toEqual({ provider: 'dexscreener', retrievedAt: expect.any(Number), payload });
     expect(fetchMock.mock.calls[0][0]).toBe(quoteUrl);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });

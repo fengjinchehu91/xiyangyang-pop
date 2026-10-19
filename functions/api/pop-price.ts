@@ -1,30 +1,111 @@
-import { verifiedDeployment as deployment } from '../../src/config/verified';
-import { fetchJson, isRecord, jsonResponse, type RequestContext } from '../_lib/http';
+import { parseMarketPayload, parseQuotePayload, popUsdPool,
+  type QuoteEnvelope, type QuoteProvider } from '../../src/config/popMarket';
+import { isRecord, jsonResponse, readJsonLimited, type RequestContext } from '../_lib/http';
 
-const quoteUrl = 'https://api.dexscreener.com/latest/dex/pairs/bsc/0xe5ce5bc4785cd2a246151364f5a190cee3fdb142';
+const providers: { id: QuoteProvider; url: string; accept: string }[] = [
+  { id: 'dexscreener', url: `https://api.dexscreener.com/latest/dex/pairs/bsc/${popUsdPool}`,
+    accept: 'application/json' },
+  { id: 'geckoterminal', url: `https://api.geckoterminal.com/api/v2/networks/bsc/pools/${popUsdPool}?include=base_token,quote_token,dex`,
+    accept: 'application/json;version=20230203' },
+];
 
-function validMarket(payload: unknown) {
-  if (!isRecord(payload) || !Array.isArray(payload.pairs) || payload.pairs.length !== 1) return false;
-  const pair: unknown = payload.pairs[0];
-  return isRecord(pair) && pair.chainId === 'bsc' && pair.dexId === 'pancakeswap' &&
-    typeof pair.pairAddress === 'string' && pair.pairAddress.toLowerCase() === '0xe5ce5bc4785cd2a246151364f5a190cee3fdb142' &&
-    isRecord(pair.baseToken) && typeof pair.baseToken.address === 'string' && pair.baseToken.address.toLowerCase() === deployment.pop &&
-    isRecord(pair.quoteToken) && typeof pair.quoteToken.address === 'string' &&
-    pair.quoteToken.address.toLowerCase() === '0x55d398326f99059ff775485246999027b3197955' &&
-    Array.isArray(pair.labels) && pair.labels.includes('v3') &&
-    isRecord(pair.liquidity) && typeof pair.liquidity.usd === 'number' &&
-    Number.isFinite(pair.liquidity.usd) && pair.liquidity.usd >= 50_000 &&
-    typeof pair.priceUsd === 'string' && /^\d+(\.\d{1,30})?$/.test(pair.priceUsd) && /[1-9]/.test(pair.priceUsd);
+// Cache API shares state in a region; module state only coordinates this isolate.
+let cached: QuoteEnvelope | undefined;
+let inFlight: Promise<QuoteEnvelope> | undefined;
+const cooldownUntil: Record<QuoteProvider, number> = { dexscreener: 0, geckoterminal: 0 };
+
+function retryDelay(value: string | null, now: number) {
+  const delay = value && /^\d+$/.test(value) ? Number(value) * 1000
+    : value ? Date.parse(value) - now : 0;
+  return Number.isFinite(delay) ? Math.max(60_000, delay) : 60_000;
+}
+
+async function matchCache(cache: Cache | undefined, key: string) {
+  try { return cache ? await cache.match(key) : undefined; } catch { return undefined; }
+}
+
+async function putCache(cache: Cache | undefined, key: string, value: unknown, seconds: number) {
+  try { await cache?.put(key, jsonResponse(value, 200, { 'Cache-Control': `public, max-age=${seconds}` })); }
+  catch { /* A cache outage must not hide a successfully validated quote. */ }
+}
+
+async function loadQuote(cache: Cache | undefined, origin: string): Promise<QuoteEnvelope> {
+  const deadline = Date.now() + 8_000;
+  for (const provider of providers) {
+    const cooldownKey = `${origin}/api/pop-price/_cooldown/${provider.id}`;
+    const savedCooldown = await matchCache(cache, cooldownKey);
+    if (savedCooldown) {
+      try {
+        const value: unknown = await savedCooldown.json();
+        if (isRecord(value) && typeof value.until === 'number' && Number.isFinite(value.until)) {
+          cooldownUntil[provider.id] = Math.max(cooldownUntil[provider.id], value.until);
+        }
+      } catch { /* Keep the in-isolate cooldown when shared state is unavailable. */ }
+    }
+    if (Date.now() < cooldownUntil[provider.id]) continue;
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const payload = await Promise.race([
+        (async () => {
+          const response = await fetch(provider.url, { method: 'GET',
+            headers: { Accept: provider.accept }, redirect: 'manual', signal: controller.signal });
+          if (response.status === 429) {
+            const now = Date.now();
+            cooldownUntil[provider.id] = now + retryDelay(response.headers.get('Retry-After'), now);
+            await putCache(cache, cooldownKey, { until: cooldownUntil[provider.id] },
+              Math.ceil((cooldownUntil[provider.id] - now) / 1000));
+          }
+          if (!response.ok) throw new Error(`Upstream HTTP request failed (${response.status})`);
+          return readJsonLimited(response.body, 1_048_576);
+        })(),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => { controller.abort(); reject(new Error('Upstream request timed out')); },
+            Math.min(4_000, remaining));
+        }),
+      ]);
+      parseMarketPayload(provider.id, payload);
+      return { provider: provider.id, retrievedAt: Date.now(), payload };
+    } catch (error) {
+      console.warn(`POP quote ${provider.id} unavailable:`, error instanceof Error ? error.message : 'Unknown upstream error');
+    } finally { clearTimeout(timer); }
+  }
+  throw new Error('No confirmed POP quote available');
+}
+
+async function readQuote(cache: Cache | undefined, origin: string): Promise<QuoteEnvelope> {
+  const key = `${origin}/api/pop-price`;
+  const saved = await matchCache(cache, key);
+  if (saved) {
+    try {
+      const value: unknown = await saved.json();
+      if (isRecord(value) && (value.provider === 'dexscreener' || value.provider === 'geckoterminal') &&
+          typeof value.retrievedAt === 'number' && Date.now() - value.retrievedAt >= 0 &&
+          Date.now() - value.retrievedAt < 15_000) {
+        parseQuotePayload(value);
+        return { provider: value.provider, retrievedAt: value.retrievedAt, payload: value.payload };
+      }
+    } catch { /* Ignore expired or invalid cached values and read the fixed providers. */ }
+  }
+  const value = await loadQuote(cache, origin);
+  await putCache(cache, key, value, 15);
+  return value;
 }
 
 export async function onRequest({ request }: RequestContext) {
   if (request.method !== 'GET') return jsonResponse({ error: 'GET is required' }, 405, { Allow: 'GET' });
   try {
-    const payload = await fetchJson(quoteUrl, { method: 'GET', headers: { Accept: 'application/json' } }, 8_000);
-    if (!validMarket(payload)) throw new Error('POP quote market does not match');
-    return jsonResponse(payload);
-  } catch (error) {
-    console.warn('POP quote unavailable:', error instanceof Error ? error.message : 'Unknown upstream error');
+    if (!cached || Date.now() - cached.retrievedAt >= 15_000) {
+      const cache = (globalThis as typeof globalThis & { caches?: CacheStorage & { default?: Cache } }).caches?.default;
+      inFlight ??= readQuote(cache, new URL(request.url).origin).then((value) => { cached = value; return value; })
+        .finally(() => { inFlight = undefined; });
+      await inFlight;
+    }
+    const ttl = Math.max(0, Math.ceil((15_000 - (Date.now() - cached!.retrievedAt)) / 1000));
+    return jsonResponse(cached, 200, { 'Cache-Control': `public, max-age=${ttl}` });
+  } catch {
     return jsonResponse({ error: 'POP price is temporarily unavailable' }, 502);
   }
 }
