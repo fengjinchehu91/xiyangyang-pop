@@ -217,14 +217,19 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 .ecosystem-landscape { position: absolute; z-index: -1; width: 100%; height: 100%; bottom: 0; object-fit: cover; object-position: center bottom; opacity: .8; pointer-events: none; }
 .ecosystem-section .section-heading { text-align: center; }
 .ecosystem-section .heading-line { justify-content: center; align-items: center; }
-.ecosystem-connection { max-width: 710px; margin-inline: auto; display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; margin-top: 20px; margin-bottom: 40px; }
+.ecosystem-connection { position: relative; isolation: isolate; max-width: 710px; margin-inline: auto; display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; margin-top: 20px; margin-bottom: 40px; }
+.eco-morph-canvas { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; opacity: 0; pointer-events: none; transition: opacity .15s ease; }
+.ecosystem-connection[data-morphing="true"] .eco-morph-canvas { opacity: 1; }
+.ecosystem-connection[data-morphing="true"] .eco-brand > img { opacity: 0; }
 .eco-brand { display: flex; flex-direction: column; align-items: center; text-align: center; }
-.eco-brand > img { height: 144px; width: 144px; object-fit: contain; margin-bottom: 15px; }
+.eco-brand > img { height: 144px; width: 144px; object-fit: contain; margin-bottom: 15px; transition: opacity .15s ease; }
 .eco-brand > img.pop-logo { width: 144px; height: 144px; margin-block: 0 15px; }
 .eco-brand > strong { font-size: 16px; font-weight: 750; color: var(--deep); }
 .eco-brand > span { font-size: 9px; color: #657c68; margin-top: 7px; }
-.eco-connector { display: flex; align-items: center; color: #b5913d; gap: 16px; padding-bottom: 43px; }
+.eco-connector { position: relative; z-index: 2; display: flex; align-items: center; color: #b5913d; gap: 16px; padding-bottom: 43px; }
 .eco-connector > span { flex: 1; height: 1px; background: #a5bfaa; }
+.eco-morph-control, .eco-connector > .eco-static-arrow { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; min-width: 44px; height: 44px; background: transparent; color: inherit; }
+.eco-morph-control:disabled { cursor: default; opacity: .65; }
 .eco-items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 33px; }
 .eco-items > article { padding-right: 30px; border-right: 1px solid #cfdccc; }
 .eco-items > article:last-child { border-right: 0; padding-right: 0; }

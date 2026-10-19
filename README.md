@@ -108,6 +108,8 @@ npm run preview
 
 ## 素材与视觉
 
+生态区的双 Logo 点阵变形为本项目独立实现，位于 `src/components/EcosystemLogos.tsx` 和 `src/lib/logoMorph.ts`，不包含 React Bits Pro 付费源码，不需要许可证或新增依赖。进入视口自动播放一次约 3.4 秒，点击中间双向箭头可重播；手机降低采样密度及像素比，离屏、切到后台、尺寸变化或启用减少动态效果时恢复静态 Logo。动画不更改品牌文字、页面数据与资金机制。
+
 原始 Logo 由用户提供并继续保留。当前页面配图接入用户桌面素材包 `xiyangyang-web-assets-v1/assets/`，8 张 WebP 按原层级复制到 `public/art-v1/backgrounds/`、`public/art-v1/illustrations/`，共约 1.13 MiB，未重新生成、转换或编辑；包括电脑与手机 Hero 山水、金库与生态背景、点赞吉祥物及机制插画。未将完整预览图作为网页背景。完整来源见 `docs/assets.md`；此前独立生成素材的来源与提示词保留在 `public/brand/*-provenance.md`。英文字体 Manrope 自托管，中文优先使用系统苹方 / 微软雅黑 / Noto Sans SC。
 
 视觉以已选山水预览为品牌依据，并按最新文字要求更新为左右 Hero、暖白/生态绿配色、三指标只读金库；参考图中较早的基金宣传与未核实数据不予沿用。实际检查见 `design-qa.md`。
