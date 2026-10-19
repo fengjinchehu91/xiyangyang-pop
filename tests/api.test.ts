@@ -124,6 +124,16 @@ describe('same-origin read-only chain APIs', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it('uses Workers-compatible manual redirects and refuses to follow an upstream 302', async () => {
+    fetchMock.mockImplementation(async () => new Response(null, {
+      status: 302, headers: { Location: 'https://attacker.example/redirected' },
+    }));
+    expect((await rpc(request('eth_chainId'))).status).toBe(503);
+    expect((await price({ request: new Request('https://site.example/api/pop-price') })).status).toBe(502);
+    expect(fetchMock.mock.calls.map((call) => call[0])).toEqual([primary, secondary, quoteUrl]);
+    for (const [, init] of fetchMock.mock.calls) expect(init.redirect).toBe('manual');
+  });
+
   it('returns an uncached failure when all upstreams fail, without manufacturing zero or empty logs', async () => {
     fetchMock.mockImplementation(async () => response({ jsonrpc: '2.0', id: 17,
       error: { code: -32005, message: 'Logs unavailable' } }));
