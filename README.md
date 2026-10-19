@@ -1,6 +1,14 @@
 # 喜羊羊 XIYANGYANG 官网
 
-React + TypeScript + Vite + Tailwind CSS 构建的只读展示官网。适配电脑、平板和手机，提供中英文切换、锚点导航、复制反馈及链上查询入口。本地交付，未发布。
+React + TypeScript + Vite + Tailwind CSS 构建的只读展示官网。适配电脑、平板和手机，提供中英文切换、锚点导航、复制反馈及链上查询入口。生产站点：https://xiyangyang-pop.pages.dev/ 。
+
+## 手机数据读取修复（2026-10-19）
+
+生产版本默认通过同域 `/api/rpc`、`/api/history`、`/api/pop-price` 读取，手机不再直接依赖币安 RPC 和行情服务域名的可达性。Pages Functions 固定上游并降级重试，限制为已核实地址、只读方法及日志过滤，不提供交易、钱包或任意代理功能。请求失败不返回伪造的零值。
+
+**从 GitHub 仓库根目录部署 Cloudflare Pages**，构建 `npm run build`，输出 `dist`；Cloudflare 会同时部署根目录 `functions/`。仅上传旧 `xiyangyang-static.zip` 不包含这些接口，不能替代本版 Git 集成部署。`public/_routes.json` 仅让 `/api/*` 调用函数，不影响静态素材。
+
+报价、黑洞余额和金库指标独立提交结果，慢指标不阻塞其他指标；移除 `AbortSignal.timeout()` 依赖，恢复网络时重试。页面可见时约每 30 秒读取主数据，历史归集约每 60 秒刷新；不是逐笔推送。报价仍为外部行情参考，显示获取时间而非虚构行情时间。Vite 开发模式保留直连公开数据源，生产预览应使用 Pages Functions 环境。
 
 ## 部署交付
 
@@ -43,6 +51,7 @@ npm run preview
 | `src/hooks/useBuybackFlows.ts` | 独立 60 秒增量刷新，不阻塞金库与报价 |
 | `src/lib/format.ts` | bigint 数量、极小数与美元参考值格式化 |
 | `src/components/` | 页面分区与展示组件 |
+| `functions/api/` | 生产环境同域只读 RPC、历史及报价接口 |
 | `public/brand/` | 独立 Logo、透明角色、山水与 POP 标识 |
 | `docs/screenshots/` | 实际浏览器截图与视觉对比 |
 

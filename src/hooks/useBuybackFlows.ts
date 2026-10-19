@@ -40,10 +40,13 @@ export function useBuybackFlows() {
       if (!document.hidden && Date.now() - lastAttempt.current >= refreshInterval) void refresh();
     };
     document.addEventListener('visibilitychange', resume);
+    const reconnect = () => { if (!document.hidden) void refresh(); };
+    window.addEventListener('online', reconnect);
     return () => {
       mounted.current = false;
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', resume);
+      window.removeEventListener('online', reconnect);
     };
   }, [refresh]);
 

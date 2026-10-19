@@ -1,6 +1,14 @@
 # 喜羊羊 XIYANGYANG 部署说明
 
-交付日期：2026-10-18。当前版本为纯静态只读网站，不需要后端、数据库、钱包私钥或合约部署。本次仅生成本地交付文件，没有发布到公网。
+更新日期：2026-10-19。网站已发布至 https://xiyangyang-pop.pages.dev/ 。当前为只读网站，不需要数据库、钱包私钥或合约部署。
+
+## 当前生产部署（优先）
+
+为改善手机网络下数据读取，生产版本增加了 Cloudflare Pages Functions：`functions/api/rpc.ts`、`history.ts`、`pop-price.ts`。请沿用 GitHub 集成从仓库根目录构建，命令 `npm run build`、输出目录 `dist`、根目录留空。Cloudflare 自动打包根目录的 `functions/`；部署日志应同时出现函数编译成功。`dist/_routes.json` 将函数范围限制为 `/api/*`。
+
+保持 `VITE_BSC_RPC_URL`、`VITE_BSC_HISTORY_RPC_URL`、`VITE_POP_QUOTE_URL` 留空，生产网站会访问同域接口；其上游固定且只允许已核实的只读查询。设置为外部 URL 会恢复浏览器直连，需要访客网络可达和 CORS，可能重现手机读取问题。失败保留“暂未获取”及重试，不显示零余额。
+
+**以下静态包交付说明属于旧版。旧 `release/` 和桌面压缩包不包含本次同源接口修复。仅上传静态 `dist/` 无法部署当前数据接口，不应据此覆盖现有生产站点。** 若迁移到不支持 Pages Functions 的主机，需要同时提供相同的只读 API，或显式配置全部外部直连 URL 后重新构建。
 
 ## 交付文件
 

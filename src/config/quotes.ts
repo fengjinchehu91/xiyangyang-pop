@@ -46,7 +46,8 @@ export function parsePopUsdQuote(payload: unknown) {
 export const quoteSource: QuoteSource | null = {
   tokenAddress: popAddress,
   sourceUrl: `https://dexscreener.com/bsc/${pairAddress}`,
-  requestUrl: `https://api.dexscreener.com/latest/dex/pairs/bsc/${pairAddress}`,
+  requestUrl: import.meta.env.VITE_POP_QUOTE_URL?.trim() || (import.meta.env.DEV
+    ? `https://api.dexscreener.com/latest/dex/pairs/bsc/${pairAddress}` : '/api/pop-price'),
   maxAgeMs: 60_000,
   timestampKind: 'retrieved',
   parse: parsePopUsdQuote,

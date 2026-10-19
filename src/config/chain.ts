@@ -4,7 +4,10 @@ import { verifiedDeployment } from './verified';
 export const chainConfig = {
   chainId: 56,
   name: 'BNB Smart Chain',
-  rpcUrl: import.meta.env.VITE_BSC_RPC_URL || 'https://bsc-dataseed.binance.org',
+  rpcUrl: import.meta.env.VITE_BSC_RPC_URL?.trim() ||
+    (import.meta.env.DEV ? 'https://bsc-dataseed.binance.org' : '/api/rpc'),
+  historyRpcUrl: import.meta.env.VITE_BSC_HISTORY_RPC_URL?.trim() ||
+    (import.meta.env.DEV ? 'https://rpc-bsc.48.club' : '/api/history'),
   explorerUrl: 'https://bscscan.com',
   refreshIntervalMs: 30_000,
   tokens: {

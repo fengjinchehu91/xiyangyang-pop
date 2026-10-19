@@ -3,12 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const rpc = vi.hoisted(() => ({
   readContract: vi.fn(), getChainId: vi.fn(), getBlockNumber: vi.fn(), getBalance: vi.fn(),
 }));
+const quoteConfig = vi.hoisted(() => ({ source: null as import('../src/config/quotes').QuoteSource | null }));
 vi.mock('viem', async (importOriginal) => {
   const actual = await importOriginal<typeof import('viem')>();
   return { ...actual, createPublicClient: () => ({ ...rpc, transport: { url: 'test://bsc' } }) };
 });
 vi.mock('../src/config/quotes', async (importOriginal) => ({
-  ...await importOriginal<typeof import('../src/config/quotes')>(), quoteSource: null,
+  ...await importOriginal<typeof import('../src/config/quotes')>(),
+  get quoteSource() { return quoteConfig.source; },
 }));
 
 let data: typeof import('../src/data/treasury');
@@ -20,6 +22,7 @@ beforeEach(async () => {
   vi.resetModules();
   vi.clearAllMocks();
   vi.unstubAllGlobals();
+  quoteConfig.source = null;
   data = await import('../src/data/treasury');
   chain = (await import('../src/config/chain')).chainConfig;
   sources = (await import('../src/config/contracts')).contractSources;
@@ -129,6 +132,42 @@ describe('honest treasury states', () => {
     expect(first).toBe(second);
     await first;
     expect(rpc.getChainId).toHaveBeenCalledTimes(1);
+  });
+  it('publishes independent quote data while the RPC is still waiting', async () => {
+    chain.treasuryAddress = holder;
+    quoteConfig.source = {
+      tokenAddress: chain.tokens.pop, sourceUrl: 'https://example.com/source',
+      requestUrl: '/api/pop-price', maxAgeMs: 60_000,
+      parse: () => ({ usdPerToken: '0.0003', timestamp: Date.now() }),
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}')));
+    let release!: (value: number) => void;
+    rpc.getChainId.mockImplementation(() => new Promise<number>((resolve) => { release = resolve; }));
+    const update = vi.fn();
+    const pending = data.readDashboard(update);
+    await vi.waitFor(() => expect(update).toHaveBeenCalledWith({ quote: expect.objectContaining({ status: 'ready' }) }));
+    expect(rpc.getBlockNumber).not.toHaveBeenCalled();
+    release(56);
+    expect((await pending).reserve.status).toBe('ready');
+  });
+  it('publishes blackhole data without waiting for a slow treasury balance', async () => {
+    const { verifiedDeployment: deployment } = await import('../src/config/verified');
+    chain.tokens.xiyangyang = deployment.token;
+    chain.treasuryAddress = holder;
+    let release!: (value: bigint) => void;
+    rpc.readContract.mockImplementation(async ({ functionName, address }: { functionName: string; address: string }) => {
+      if (functionName === 'decimals') return 18;
+      if (functionName === 'symbol') return address === deployment.token ? 'XIYANGYANG' : 'POP';
+      if (address === deployment.token) return 19508n * 10n ** 18n;
+      return new Promise<bigint>((resolve) => { release = resolve; });
+    });
+    const update = vi.fn();
+    const pending = data.readDashboard(update);
+    await vi.waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      blackholeBurned: expect.objectContaining({ status: 'ready' }),
+    })));
+    release(10n);
+    await pending;
   });
   it('does not derive a floor price from reserves or 30 million tokens', async () => {
     chain.treasuryAddress = holder;
@@ -278,5 +317,28 @@ describe('reliable USD quote validation', () => {
   it('rejects a failed price request', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 503 })));
     await expect(data.readUsdQuote(feed())).rejects.toThrow('request failed');
+  });
+  it('works on browsers without AbortSignal.timeout and accepts the fixed same-origin feed', async () => {
+    vi.stubGlobal('AbortSignal', {});
+    const request = vi.fn().mockResolvedValue(new Response(JSON.stringify({ usdPerToken: '0.123', timestamp: Date.now() })));
+    vi.stubGlobal('fetch', request);
+    expect(await data.readUsdQuote({ ...feed(), requestUrl: '/api/pop-price' })).toMatchObject({ usdPerToken: '0.123' });
+    expect(request).toHaveBeenCalledWith('/api/pop-price', expect.objectContaining({
+      signal: expect.anything(), cache: 'no-store',
+    }));
+  });
+  it('cancels a stalled quote request and cleans up its timeout', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((_url, { signal }: { signal: AbortSignal }) =>
+      new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(new Error('Aborted'))))));
+    try {
+      const pending = expect(data.readUsdQuote(feed())).rejects.toThrow('Aborted');
+      await vi.advanceTimersByTimeAsync(10_000);
+      await pending;
+      expect(vi.getTimerCount()).toBe(0);
+    } finally { vi.useRealTimers(); }
+  });
+  it('rejects arbitrary relative quote URLs', async () => {
+    await expect(data.readUsdQuote({ ...feed(), requestUrl: '/unverified' })).rejects.toThrow();
   });
 });

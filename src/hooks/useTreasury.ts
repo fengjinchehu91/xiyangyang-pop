@@ -15,7 +15,9 @@ export function useTreasury() {
     lastAttempt.current = Date.now();
     setRefreshing(true);
     try {
-      const next = await readDashboard();
+      const next = await readDashboard((patch) => {
+        if (mounted.current) setData((previous) => ({ ...previous, ...patch }));
+      });
       if (mounted.current) setData(next);
     } finally {
       active.current = false;
@@ -35,10 +37,13 @@ export function useTreasury() {
       }
     };
     document.addEventListener('visibilitychange', resume);
+    const reconnect = () => { if (!document.hidden) void refresh(); };
+    window.addEventListener('online', reconnect);
     return () => {
       mounted.current = false;
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', resume);
+      window.removeEventListener('online', reconnect);
     };
   }, [refresh]);
   return { data, refresh, refreshing, configured };

@@ -18,7 +18,7 @@ export interface BuybackFlows {
 
 const historyClient = createPublicClient({
   chain: bsc,
-  transport: http(import.meta.env.VITE_BSC_HISTORY_RPC_URL?.trim() || 'https://rpc-bsc.48.club', {
+  transport: http(chainConfig.historyRpcUrl, {
     timeout: 30_000, retryCount: 1,
   }),
 });

@@ -12,7 +12,7 @@ import type { Dashboard, ReadResult, TokenAmount, UsdQuote } from './types';
 
 export const publicClient = createPublicClient({
   chain: bsc,
-  transport: http(chainConfig.rpcUrl, { timeout: 10_000, retryCount: 0 }),
+  transport: http(chainConfig.rpcUrl, { timeout: 12_000, retryCount: 0 }),
 });
 
 const metadataCache = new Map<string, Promise<{ decimals: number; symbol: string }>>();
@@ -85,12 +85,20 @@ export async function readUsdQuote(source: QuoteSource): Promise<UsdQuote> {
   if (source.tokenAddress.toLowerCase() !== chainConfig.tokens.pop.toLowerCase()) {
     throw new Error('Quote asset does not match POP');
   }
-  if (new URL(source.requestUrl).protocol !== 'https:' || new URL(source.sourceUrl).protocol !== 'https:') {
+  if ((source.requestUrl !== '/api/pop-price' && new URL(source.requestUrl).protocol !== 'https:') ||
+      new URL(source.sourceUrl).protocol !== 'https:') {
     throw new Error('Quote source must use HTTPS');
   }
-  const response = await fetch(source.requestUrl, { signal: AbortSignal.timeout(8_000) });
-  if (!response.ok) throw new Error('Price source request failed');
-  const quote = source.parse(await response.json());
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10_000);
+  let quote: ReturnType<QuoteSource['parse']>;
+  try {
+    const response = await fetch(source.requestUrl, { signal: controller.signal, cache: 'no-store' });
+    if (!response.ok) throw new Error('Price source request failed');
+    quote = source.parse(await response.json());
+  } finally {
+    clearTimeout(timer);
+  }
   if (!/^\d+(\.\d{1,30})?$/.test(quote.usdPerToken) ||
       !/[1-9]/.test(quote.usdPerToken) || !Number.isFinite(quote.timestamp) ||
       Date.now() - quote.timestamp > Math.min(source.maxAgeMs, 300_000) ||
@@ -136,8 +144,18 @@ async function result<T>(read: () => Promise<T>): Promise<ReadResult<T>> {
   }
 }
 
+type DashboardUpdate = (patch: Partial<Dashboard>) => void;
+const listeners = new Set<DashboardUpdate>();
+
+function publish(patch: Partial<Dashboard>) {
+  for (const listener of listeners) listener(patch);
+}
+
 async function loadDashboard(): Promise<Dashboard> {
   const snapshot = initialDashboard();
+  // Price retrieval is independent of RPC availability and must not wait for it.
+  const quoteTask = quoteSource ? result(() => readUsdQuote(quoteSource!))
+    .then((value) => { snapshot.quote = value; publish({ quote: value }); }) : undefined;
   const configuredOnchain = Boolean(chainConfig.treasuryAddress || hasBuybackSource() ||
     contractSources.floorPrice || contractSources.cumulativeBurned || hasVerifiedBlackholeSource() ||
     contractSources.recentBuyback);
@@ -157,7 +175,19 @@ async function loadDashboard(): Promise<Dashboard> {
     if (blockNumber === undefined) throw new Error('No block available');
     return read(blockNumber);
   });
+  const update = <K extends keyof Pick<Dashboard, 'reserve' | 'floor' | 'buyback' | 'burned' | 'blackholeBurned' | 'recentBuyback'>>(
+    key: K, value: Dashboard[K],
+  ) => {
+    snapshot[key] = value;
+    const patch: Partial<Dashboard> = { [key]: value };
+    if (value.status === 'ready') {
+      snapshot.blockNumber = patch.blockNumber = blockNumber;
+      snapshot.updatedAt = patch.updatedAt = value.updatedAt;
+    }
+    publish(patch);
+  };
   const tasks: Promise<void>[] = [];
+  if (quoteTask) tasks.push(quoteTask);
   // Recheck asset identity at the same block, shared by reserve and price reads.
   const treasuryIdentity = chainConfig.treasuryAddress?.toLowerCase() === verifiedDeployment.treasury &&
     blockNumber !== undefined && !chainFailure
@@ -180,11 +210,11 @@ async function loadDashboard(): Promise<Dashboard> {
   if (chainConfig.treasuryAddress) tasks.push(onchain(async (block) => {
     await checkTreasuryIdentity();
     return readTokenBalance(publicClient, chainConfig.tokens.pop, requireAddress(chainConfig.treasuryAddress!), block);
-  }).then((value) => { snapshot.reserve = value; }));
+  }).then((value) => { update('reserve', value); }));
   if (contractSources.floorPrice) tasks.push(onchain(async (block) => {
     await checkTreasuryIdentity();
     return readVerifiedView(publicClient, contractSources.floorPrice!, block, 'POP');
-  }).then((value) => { snapshot.floor = value; }));
+  }).then((value) => { update('floor', value); }));
   if (hasBuybackSource()) tasks.push(onchain(async (block) => {
     const holder = requireAddress(chainConfig.buybackAddress!);
     if (chainConfig.buybackAssetKind === 'native') {
@@ -195,13 +225,13 @@ async function loadDashboard(): Promise<Dashboard> {
       throw new Error('Buyback reserve asset has not been confirmed');
     }
     return readTokenBalance(publicClient, requireAddress(chainConfig.buybackAssetAddress), holder, block);
-  }).then((value) => { snapshot.buyback = value; }));
+  }).then((value) => { update('buyback', value); }));
   if (contractSources.cumulativeBurned) tasks.push(onchain((block) => readVerifiedView(
     publicClient, contractSources.cumulativeBurned!, block, 'XIYANGYANG',
-  )).then((value) => { snapshot.burned = value; }));
+  )).then((value) => { update('burned', value); }));
   if (hasVerifiedBlackholeSource()) tasks.push(onchain((block) => readTokenBalance(
     publicClient, verifiedDeployment.token, verifiedDeployment.burnAddress, block,
-  )).then((value) => { snapshot.blackholeBurned = value; }));
+  )).then((value) => { update('blackholeBurned', value); }));
   if (contractSources.recentBuyback) tasks.push(onchain(async (block) => {
     if (new URL(contractSources.recentBuyback!.verificationUrl).protocol !== 'https:') {
       throw new Error('Unverified event source');
@@ -212,9 +242,7 @@ async function loadDashboard(): Promise<Dashboard> {
       throw new Error('Invalid buyback record');
     }
     return record;
-  }).then((value) => { snapshot.recentBuyback = value; }));
-  if (quoteSource) tasks.push(result(() => readUsdQuote(quoteSource!))
-    .then((value) => { snapshot.quote = value; }));
+  }).then((value) => { update('recentBuyback', value); }));
   await Promise.all(tasks);
   const successfulOnchain = [snapshot.reserve, snapshot.floor, snapshot.buyback,
     snapshot.burned, snapshot.blackholeBurned, snapshot.recentBuyback].some((value) => value.status === 'ready');
@@ -226,8 +254,9 @@ async function loadDashboard(): Promise<Dashboard> {
 }
 
 let inFlight: Promise<Dashboard> | undefined;
-export function readDashboard(): Promise<Dashboard> {
+export function readDashboard(onUpdate?: DashboardUpdate): Promise<Dashboard> {
   // The page and manual refresh share one request; no overlapping 30s polls.
-  inFlight ??= loadDashboard().finally(() => { inFlight = undefined; });
+  if (onUpdate) listeners.add(onUpdate);
+  inFlight ??= loadDashboard().finally(() => { inFlight = undefined; listeners.clear(); });
   return inFlight;
 }
