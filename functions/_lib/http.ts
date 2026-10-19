@@ -43,7 +43,7 @@ export async function fetchJson(url: string, init: RequestInit, timeoutMs: numbe
     return await Promise.race([
       (async () => {
         const response = await fetch(url, { ...init, signal: controller.signal, redirect: 'manual' });
-        if (!response.ok) throw new Error('Upstream HTTP request failed');
+        if (!response.ok) throw new Error(`Upstream HTTP request failed (${response.status})`);
         return readJsonLimited(response.body, 1_048_576);
       })(),
       new Promise<never>((_, reject) => {

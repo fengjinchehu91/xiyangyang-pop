@@ -23,5 +23,8 @@ export async function onRequest({ request }: RequestContext) {
     const payload = await fetchJson(quoteUrl, { method: 'GET', headers: { Accept: 'application/json' } }, 8_000);
     if (!validMarket(payload)) throw new Error('POP quote market does not match');
     return jsonResponse(payload);
-  } catch { return jsonResponse({ error: 'POP price is temporarily unavailable' }, 502); }
+  } catch (error) {
+    console.warn('POP quote unavailable:', error instanceof Error ? error.message : 'Unknown upstream error');
+    return jsonResponse({ error: 'POP price is temporarily unavailable' }, 502);
+  }
 }
