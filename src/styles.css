@@ -217,19 +217,23 @@ h1, h2, h3, p, dl, dd { margin: 0; }
 .ecosystem-landscape { position: absolute; z-index: -1; width: 100%; height: 100%; bottom: 0; object-fit: cover; object-position: center bottom; opacity: .8; pointer-events: none; }
 .ecosystem-section .section-heading { text-align: center; }
 .ecosystem-section .heading-line { justify-content: center; align-items: center; }
-.ecosystem-connection { position: relative; isolation: isolate; max-width: 710px; margin-inline: auto; display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; margin-top: 20px; margin-bottom: 40px; }
-.eco-morph-canvas { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; opacity: 0; pointer-events: none; transition: opacity .15s ease; }
-.ecosystem-connection[data-morphing="true"] .eco-morph-canvas { opacity: 1; }
-.ecosystem-connection[data-morphing="true"] .eco-brand > img { opacity: 0; }
-.eco-brand { display: flex; flex-direction: column; align-items: center; text-align: center; }
-.eco-brand > img { height: 144px; width: 144px; object-fit: contain; margin-bottom: 15px; transition: opacity .15s ease; }
-.eco-brand > img.pop-logo { width: 144px; height: 144px; margin-block: 0 15px; }
-.eco-brand > strong { font-size: 16px; font-weight: 750; color: var(--deep); }
-.eco-brand > span { font-size: 9px; color: #657c68; margin-top: 7px; }
-.eco-connector { position: relative; z-index: 2; display: flex; align-items: center; color: #b5913d; gap: 16px; padding-bottom: 43px; }
-.eco-connector > span { flex: 1; height: 1px; background: #a5bfaa; }
-.eco-morph-control, .eco-connector > .eco-static-arrow { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; min-width: 44px; height: 44px; background: transparent; color: inherit; }
-.eco-morph-control:disabled { cursor: default; opacity: .65; }
+.eco-particles { max-width: 960px; margin: -15px auto 44px; }
+.eco-particle-stage { position: relative; height: 410px; isolation: isolate; }
+.eco-particle-fallback { position: absolute; inset: 0; margin: auto; width: 66%; height: 66%; object-fit: contain; transition: opacity .18s ease; }
+.eco-particle-canvas { display: block; position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; touch-action: pan-y; transition: opacity .18s ease; }
+.eco-particles[data-rendered="true"] .eco-particle-canvas { opacity: 1; }
+.eco-particles[data-rendered="true"] .eco-particle-fallback { opacity: 0; }
+.eco-particle-caption { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 9px 15px; min-height: 28px; margin-top: 8px; color: #607965; font-size: 10px; line-height: 1.6; }
+.eco-particle-caption strong { font-size: 15px; color: var(--deep); font-weight: 700; }
+.eco-particle-caption > span:last-child { padding-left: 15px; border-left: 1px solid #b8ccba; }
+.eco-particle-toolbar { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 58px; margin-top: 15px; }
+.eco-particle-options { display: flex; padding: 4px; gap: 4px; border: 1px solid #c6d8c7; border-radius: 7px; background: #fafbf7c9; }
+.eco-particle-options button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 46px; min-width: 162px; padding: 9px 22px; border: 0; border-radius: 4px; color: #526c59; background: transparent; font-size: 12px; font-weight: 650; transition: background .18s, color .18s; }
+.eco-particle-options button img { width: 22px; height: 22px; object-fit: contain; }
+.eco-particle-options button:hover { background: #e8f0e3; }
+.eco-particle-options button[aria-pressed="true"] { background: var(--green); color: #fff; }
+.eco-particle-play { min-width: 44px; height: 44px; color: var(--green); }
+.eco-particle-play-slot { display: inline-flex; flex: 0 0 44px; width: 44px; height: 44px; }
 .eco-items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 33px; }
 .eco-items > article { padding-right: 30px; border-right: 1px solid #cfdccc; }
 .eco-items > article:last-child { border-right: 0; padding-right: 0; }
@@ -425,13 +429,14 @@ h1, h2, h3, p, dl, dd { margin: 0; }
   .mechanism-details > div > span:first-child { font-size: 10px; }
   .mechanism-details .pending-value { font-size: 19px; margin-top: 13px; }
   .trigger-detail p { font-size: 9px; }
-  .ecosystem-connection { margin-block: 23px 36px; grid-template-columns: 1fr .8fr 1fr; }
-  .eco-brand > img { width: 110px; height: 110px; margin-bottom: 14px; }
-  .eco-brand > img.pop-logo { width: 110px; height: 110px; margin-block: 0 14px; }
-  .eco-brand > strong { font-size: 12px; }
-  .eco-brand > span { font-size: 7px; margin-top: 5px; }
-  .eco-connector { gap: 8px; padding-bottom: 30px; }
-  .eco-connector svg { width: 23px; }
+  .eco-particles { margin: -8px auto 34px; }
+  .eco-particle-stage { height: 300px; }
+  .eco-particle-caption { gap: 7px 10px; font-size: 8px; }
+  .eco-particle-caption strong { font-size: 13px; }
+  .eco-particle-caption > span:last-child { padding-left: 10px; }
+  .eco-particle-toolbar { gap: 6px; }
+  .eco-particle-options { flex: 1; max-width: 300px; }
+  .eco-particle-options button { flex: 1; min-width: 0; padding-inline: 9px; font-size: 10px; gap: 6px; }
   .eco-items { display: block; }
   .eco-items > article, .eco-items > article:last-child { padding: 20px 0; border: 0; border-top: 1px solid #cfdccc; }
   .eco-items svg { margin-bottom: 10px; width: 21px; height: 21px; }

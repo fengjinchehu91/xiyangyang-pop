@@ -1,183 +1,118 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeftRight } from 'lucide-react';
+import { Pause, Play } from 'lucide-react';
 import { brand } from '../config/brand';
 import type { Copy } from '../content/copy';
-import { createMorphParticles, interpolateMorphDot, type LogoDot, type MorphParticle } from '../lib/logoMorph';
+import type { EcosystemParticles } from '../lib/ecosystemParticles';
 
-function sampleLogo(image: HTMLImageElement, root: DOMRect, columns: number): LogoDot[] {
-  const surface = document.createElement('canvas');
-  surface.width = columns;
-  surface.height = columns;
-  const context = surface.getContext('2d', { willReadFrequently: true });
-  if (!context) return [];
-  const scale = Math.min(columns / image.naturalWidth, columns / image.naturalHeight);
-  const width = image.naturalWidth * scale;
-  const height = image.naturalHeight * scale;
-  context.drawImage(image, (columns - width) / 2, (columns - height) / 2, width, height);
-  const { data } = context.getImageData(0, 0, columns, columns);
-  const box = image.getBoundingClientRect();
-  const dots: LogoDot[] = [];
-  for (let y = 0; y < columns; y++) {
-    for (let x = 0; x < columns; x++) {
-      const offset = (y * columns + x) * 4;
-      if (data[offset + 3] < 48) continue;
-      dots.push({
-        x: box.left - root.left + (x + 0.5) * box.width / columns,
-        y: box.top - root.top + (y + 0.5) * box.height / columns,
-        r: data[offset], g: data[offset + 1], b: data[offset + 2], a: data[offset + 3] / 255,
-      });
-    }
-  }
-  return dots;
-}
+const forms = [
+  { name: 'XIYANGYANG', detail: 'MEME COMMUNITY', src: brand.logo },
+  { name: 'POP', detail: 'ZYPHER ECOSYSTEM', src: brand.popLogo },
+];
 
 export default function EcosystemLogos({ t }: { t: Copy }) {
-  const rootRef = useRef<HTMLDivElement>(null);
-  const firstRef = useRef<HTMLImageElement>(null);
-  const secondRef = useRef<HTMLImageElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const replayRef = useRef<() => void>(() => {});
-  const playedRef = useRef(false);
-  const [motionAllowed, setMotionAllowed] = useState(false);
-  const [playing, setPlaying] = useState(false);
+  const engineRef = useRef<EcosystemParticles | null>(null);
+  const selectedRef = useRef(0);
+  const pausedRef = useRef(false);
+  const [selected, setSelected] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [reduced, setReduced] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const root = rootRef.current;
-    const first = firstRef.current;
-    const second = secondRef.current;
-    const canvas = canvasRef.current;
-    if (!root || !first || !second || !canvas || !window.IntersectionObserver || !window.ResizeObserver) return;
-    const context = canvas.getContext('2d');
-    if (!context) return;
-
+    const stage = stageRef.current, canvas = canvasRef.current;
+    if (!stage || !canvas || !window.IntersectionObserver || !window.ResizeObserver) return;
     const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
-    let visible = false;
-    let frame = 0;
-    let disposed = false;
-    let width = root.clientWidth;
-    let height = root.clientHeight;
-    let prepared: { particles: MorphParticle[]; radius: number; width: number; bottom: number } | undefined;
+    let disposed = false, visible = false, initializing = false, failed = false;
 
-    function stop() {
-      cancelAnimationFrame(frame);
-      frame = 0;
-      context!.clearRect(0, 0, canvas!.width, canvas!.height);
-      if (!disposed) setPlaying(false);
-    }
-
-    function play() {
-      if (disposed || frame || !visible || document.hidden || preference.matches) return;
-      if (![first!, second!].every(image => image.complete && image.naturalWidth > 0)) return;
+    const onChange = (index: number) => {
+      if (disposed) return;
+      selectedRef.current = index;
+      setSelected(index);
+    };
+    const onError = () => {
+      failed = true;
+      if (disposed) return;
+      setReady(false);
+      engineRef.current?.destroy();
+      engineRef.current = null;
+    };
+    async function initialize() {
+      if (disposed || failed || initializing || engineRef.current || !visible || preference.matches) return;
+      initializing = true;
       try {
-        if (!prepared) {
-          const box = root!.getBoundingClientRect();
-          const mobile = window.matchMedia('(max-width: 767px)').matches;
-          const density = mobile ? 26 : 36;
-          const dpr = mobile ? 1 : Math.min(window.devicePixelRatio || 1, 2);
-          canvas!.width = Math.round(box.width * dpr);
-          canvas!.height = Math.round(box.height * dpr);
-          context!.setTransform(dpr, 0, 0, dpr, 0, 0);
-          prepared = {
-            particles: createMorphParticles(sampleLogo(first!, box, density), sampleLogo(second!, box, density)),
-            radius: mobile ? 1.55 : 1.65,
-            width: box.width,
-            bottom: Math.max(first!.getBoundingClientRect().bottom, second!.getBoundingClientRect().bottom) - box.top + 4,
-          };
-        }
-        if (!prepared.particles.length) return;
-      } catch {
-        stop();
-        return;
-      }
-
-      const { particles, radius, width: drawingWidth, bottom } = prepared;
-      const startedAt = performance.now();
-      playedRef.current = true;
-      setPlaying(true);
-
-      // Both groups exchange shapes and positions, ending at the original branded layout.
-      const paint = (now: number) => {
-        if (disposed || !visible || document.hidden || preference.matches) { stop(); return; }
-        const elapsed = now - startedAt;
-        if (elapsed >= 3400) { stop(); return; }
-        context!.clearRect(0, 0, canvas!.width, canvas!.height);
-        context!.save();
-        context!.beginPath();
-        context!.rect(0, 0, drawingWidth, bottom);
-        context!.clip();
-        const progress = (elapsed - 200) / 2650;
-        for (const particle of particles) {
-          const dot = interpolateMorphDot(particle, progress);
-          context!.fillStyle = `rgba(${dot.r},${dot.g},${dot.b},${dot.a})`;
-          context!.beginPath();
-          context!.arc(dot.x, dot.y, radius, 0, Math.PI * 2);
-          context!.fill();
-        }
-        context!.restore();
-        frame = requestAnimationFrame(paint);
-      };
-      frame = requestAnimationFrame(paint);
+        const { createEcosystemParticles } = await import('../lib/ecosystemParticles');
+        if (disposed) return;
+        const engine = await createEcosystemParticles(canvas!, [forms[0].src, forms[1].src], onChange, onError);
+        if (disposed) { engine.destroy(); return; }
+        engineRef.current = engine;
+        engine.setPaused(pausedRef.current);
+        engine.setReduced(preference.matches);
+        engine.select(selectedRef.current);
+        engine.setVisible(visible);
+        setReady(true);
+      } catch { onError(); }
+      finally { initializing = false; }
     }
-
-    function maybeAutoplay() { if (!playedRef.current) play(); }
-    function onImageLoad() {
-      prepared = undefined;
-      maybeAutoplay();
-    }
-    function onVisibility() { if (document.hidden) stop(); }
-    function onPreference() {
-      setMotionAllowed(!preference.matches);
-      if (preference.matches) stop();
-    }
-
-    const intersection = new IntersectionObserver(([entry]) => {
-      visible = entry.isIntersecting && entry.intersectionRatio >= 0.5;
-      if (visible) maybeAutoplay();
-      else stop();
-    }, { threshold: [0, 0.5] });
-    const resize = new ResizeObserver(() => {
-      if (root!.clientWidth === width && root!.clientHeight === height) return;
-      width = root!.clientWidth;
-      height = root!.clientHeight;
-      prepared = undefined;
-      stop();
-    });
-    intersection.observe(root);
-    resize.observe(root);
-    first.addEventListener('load', onImageLoad);
-    second.addEventListener('load', onImageLoad);
-    document.addEventListener('visibilitychange', onVisibility);
+    const onPreference = () => {
+      setReduced(preference.matches);
+      engineRef.current?.setReduced(preference.matches);
+      if (!preference.matches) void initialize();
+    };
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      engineRef.current?.setVisible(visible);
+      if (visible) void initialize();
+    }, { threshold: 0.05 });
+    observer.observe(stage);
     if (preference.addEventListener) preference.addEventListener('change', onPreference);
     else preference.addListener(onPreference);
     onPreference();
-    replayRef.current = play;
-
     return () => {
       disposed = true;
-      stop();
-      intersection.disconnect();
-      resize.disconnect();
-      first.removeEventListener('load', onImageLoad);
-      second.removeEventListener('load', onImageLoad);
-      document.removeEventListener('visibilitychange', onVisibility);
+      observer.disconnect();
       if (preference.removeEventListener) preference.removeEventListener('change', onPreference);
       else preference.removeListener(onPreference);
-      replayRef.current = () => {};
+      engineRef.current?.destroy();
+      engineRef.current = null;
     };
   }, []);
 
-  return <div ref={rootRef} className="ecosystem-connection" data-morphing={playing}>
-    <canvas ref={canvasRef} className="eco-morph-canvas" aria-hidden="true" />
-    <div className="eco-brand"><img ref={firstRef} src={brand.logo} width="144" height="144" alt="喜羊羊 XIYANGYANG Logo" loading="lazy" decoding="async" />
-      <strong>XIYANGYANG</strong><span>MEME COMMUNITY</span></div>
-    <div className="eco-connector"><span />{motionAllowed
-      ? <button type="button" className="icon-button eco-morph-control" onClick={() => replayRef.current()}
-        disabled={playing} aria-label={playing ? t.logoMorphPlaying : t.replayLogoMorph}
-        title={playing ? t.logoMorphPlaying : t.replayLogoMorph}>
-        <ArrowLeftRight size={29} strokeWidth={1.5} aria-hidden="true" />
-      </button>
-      : <span className="eco-static-arrow"><ArrowLeftRight size={29} strokeWidth={1.5} aria-hidden="true" /></span>}<span /></div>
-    <div className="eco-brand"><img ref={secondRef} className="pop-logo" src={brand.popLogo} width="144" height="144" alt="POP / Zypher Logo" loading="lazy" decoding="async" />
-      <strong>POP</strong><span>ZYPHER ECOSYSTEM</span></div>
+  function select(index: number) {
+    selectedRef.current = index;
+    setSelected(index);
+    engineRef.current?.select(index);
+  }
+  function togglePaused() {
+    pausedRef.current = !pausedRef.current;
+    setPaused(pausedRef.current);
+    engineRef.current?.setPaused(pausedRef.current);
+  }
+
+  const active = forms[selected];
+  return <div className="eco-particles" data-rendered={ready && !reduced}>
+    <div ref={stageRef} className="eco-particle-stage">
+      <img className="eco-particle-fallback" src={active.src} width="300" height="300" alt={`${active.name} Logo`} loading="lazy" decoding="async" />
+      <canvas ref={canvasRef} className="eco-particle-canvas" aria-hidden="true" />
+    </div>
+    <div className="eco-particle-caption"><span>{selected === 0 ? '01' : '02'} / 02</span><strong>{active.name}</strong><span>{active.detail}</span></div>
+    <div className="eco-particle-toolbar">
+      <div className="eco-particle-options" role="group" aria-label={t.particleForms}>
+        {forms.map((form, index) => <button type="button" key={form.name} aria-pressed={selected === index}
+          onClick={() => select(index)} onKeyDown={event => {
+            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+            event.preventDefault();
+            const next = selected === 0 ? 1 : 0;
+            select(next);
+            const buttons = event.currentTarget.parentElement?.querySelectorAll('button');
+            buttons?.[next].focus();
+          }}><img src={form.src} width="22" height="22" alt="" loading="lazy" />{form.name}</button>)}
+      </div>
+      <span className="eco-particle-play-slot">{ready && !reduced && <button type="button" className="icon-button eco-particle-play" onClick={togglePaused}
+        aria-label={paused ? t.playParticles : t.pauseParticles} title={paused ? t.playParticles : t.pauseParticles}>
+        {paused ? <Play size={18} aria-hidden="true" /> : <Pause size={18} aria-hidden="true" />}
+      </button>}</span>
+    </div>
   </div>;
 }

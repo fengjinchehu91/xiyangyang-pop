@@ -108,7 +108,7 @@ npm run preview
 
 ## 素材与视觉
 
-生态区的双 Logo 点阵变形为本项目独立实现，位于 `src/components/EcosystemLogos.tsx` 和 `src/lib/logoMorph.ts`，不包含 React Bits Pro 付费源码，不需要许可证或新增依赖。进入视口自动播放一次约 3.4 秒，点击中间双向箭头可重播；手机降低采样密度及像素比，离屏、切到后台、尺寸变化或启用减少动态效果时恢复静态 Logo。动画不更改品牌文字、页面数据与资金机制。
+生态区参考用户原站 `https://winkwink.pages.dev/` 的原创粒子引擎，改为中央 XIYANGYANG / POP 形态切换。使用 Three.js Points 与自定义 GPU 着色器，源码在 `src/components/EcosystemLogos.tsx`、`src/lib/ecosystemParticles.ts` 和 `src/lib/logoMorph.ts`，不包含 React Bits Pro 付费源码。真实 Logo 按透明像素采样，桌面显示 19,000 个粒子、手机 9,000 个；每种形态停留 3 秒，以 1.8 秒旋涡聚散切换，并支持鼠标局部排斥、品牌按钮和暂停控制。渲染模块进入视口才加载，离屏及后台不运行 RAF；减少动态效果、WebGL 不可用或上下文丢失时显示所选真实 Logo。卸载会释放 GPU 与事件资源，用户暂停意图不会被滚动恢复覆盖。山水、介绍、链上数据与资金机制不受改动。
 
 原始 Logo 由用户提供并继续保留。当前页面配图接入用户桌面素材包 `xiyangyang-web-assets-v1/assets/`，8 张 WebP 按原层级复制到 `public/art-v1/backgrounds/`、`public/art-v1/illustrations/`，共约 1.13 MiB，未重新生成、转换或编辑；包括电脑与手机 Hero 山水、金库与生态背景、点赞吉祥物及机制插画。未将完整预览图作为网页背景。完整来源见 `docs/assets.md`；此前独立生成素材的来源与提示词保留在 `public/brand/*-provenance.md`。英文字体 Manrope 自托管，中文优先使用系统苹方 / 微软雅黑 / Noto Sans SC。
 
