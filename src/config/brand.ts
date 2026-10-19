@@ -7,7 +7,7 @@ export const brand = {
   ecosystemLandscape: '/art-v1/backgrounds/ecosystem-jade.webp',
   goldCloud: '/art-v1/illustrations/gold-cloud.webp',
   reserveArt: '/art-v1/illustrations/reserve-vault.webp',
-  burnArt: '/art-v1/illustrations/buyback-burn.webp',
+  burnArt: '/art-v1/illustrations/buyback-xiyangyang.webp',
   landscape: '/brand/landscape.webp',
   popLogo: '/brand/pop-medallion.webp',
   tradeUrl: 'https://flap.sh/bnb/0x4dda46c9dd7e794b99eebdcfd3c82bfbd3207777',

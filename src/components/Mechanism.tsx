@@ -29,7 +29,7 @@ export default function Mechanism({ t, locale, data, onRetry }: {
           </article>
           <article className="flow-branch burn-branch">
             <div className="flow-branch-top"><span className="flow-percentage">0.5<span>%</span></span>
-              <img className="flow-art" src={brand.burnArt} width="1254" height="1254" alt="" loading="lazy" decoding="async" /></div>
+              <img className="flow-art" src={brand.burnArt} width="512" height="512" alt="" loading="lazy" decoding="async" /></div>
             <h3>{t.buybackFlow}</h3><p>{t.buybackFlowDescription}</p>
             <a href="#execution-records" className="text-link">{t.execution}<ArrowRight size={16} /></a>
           </article>
