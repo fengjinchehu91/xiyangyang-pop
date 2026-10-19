@@ -7,7 +7,7 @@ const ecoIcons = [ArrowLeftRight, Database, BookOpen];
 
 export default function Ecosystem({ t }: { t: Copy }) {
   return <section id="ecosystem" className="section ecosystem-section">
-    <img src={brand.landscape} className="ecosystem-landscape" alt="" loading="lazy" />
+    <img src={brand.ecosystemLandscape} className="ecosystem-landscape" width="1983" height="793" alt="" loading="lazy" decoding="async" />
     <div className="container ecosystem-content">
       <SectionHeading title={t.ecosystemTitle} description={t.ecosystemSub} />
       <div className="ecosystem-connection">

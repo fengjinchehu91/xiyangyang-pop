@@ -8,7 +8,10 @@ import { CopyButton, ExternalLink } from './ui';
 export default function Hero({ t }: { t: Copy }) {
   return <>
     <section id="home" className="hero">
-      <img src={brand.landscape} className="hero-landscape" alt="" fetchPriority="high" />
+      <picture className="hero-scenery">
+        <source media="(max-width: 767px)" srcSet={brand.heroMobile} />
+        <img src={brand.heroDesktop} className="hero-landscape" width="1672" height="941" alt="" fetchPriority="high" />
+      </picture>
       <div className="container hero-layout">
         <div className="hero-copy">
           <p className="hero-label"><span />XIYANGYANG / POP</p>
@@ -29,7 +32,7 @@ export default function Hero({ t }: { t: Copy }) {
         </div>
         <div className="hero-character">
           <img src={brand.mascot} alt="喜羊羊：白色羊毛、金色羊角、POP墨镜、绿色围巾与点赞动作"
-            width="1100" height="1100" fetchPriority="high" />
+            width="1536" height="1024" fetchPriority="high" decoding="async" />
           <div className="character-caption"><span>XIYANGYANG</span><span>COMMUNITY × POP</span></div>
         </div>
       </div>

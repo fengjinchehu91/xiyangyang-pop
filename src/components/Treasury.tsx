@@ -53,7 +53,7 @@ export default function Treasury({ t, locale, data, onRefresh, refreshing, confi
     </p>;
   }
   return <section id="treasury" className="treasury-section">
-    <img src={brand.landscape} className="treasury-landscape" alt="" loading="lazy" />
+    <img src={brand.treasuryLandscape} className="treasury-landscape" width="1983" height="793" alt="" loading="lazy" decoding="async" />
     <div className="container treasury-content">
       <div className="treasury-heading">
         <SectionHeading title={t.treasury} description={t.treasurySub} english="RESERVE TREASURY" light />

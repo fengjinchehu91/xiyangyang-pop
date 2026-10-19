@@ -1,7 +1,8 @@
-import { ArrowDown, ArrowRight, Database, Flame, History, RefreshCw } from 'lucide-react';
+import { ArrowDown, ArrowRight, History, RefreshCw } from 'lucide-react';
 import type { Copy, Locale } from '../content/copy';
 import type { Dashboard } from '../data/types';
 import { chainConfig, confirmedUrl } from '../config/chain';
+import { brand } from '../config/brand';
 import { buybackExecutionReview, verifiedDeployment } from '../config/verified';
 import { formatAmount, formatTime } from '../lib/format';
 import { SectionHeading, TextLink } from './ui';
@@ -21,12 +22,14 @@ export default function Mechanism({ t, locale, data, onRetry }: {
         <div className="flow-origin"><span>{t.mechanismLabel}</span><strong>{t.mechanismTax}</strong><ArrowDown size={18} /></div>
         <div className="flow-branches">
           <article className="flow-branch reserve-branch">
-            <div className="flow-branch-top"><span className="flow-percentage">1.5<span>%</span></span><Database size={35} strokeWidth={1.4} /></div>
+            <div className="flow-branch-top"><span className="flow-percentage">1.5<span>%</span></span>
+              <img className="flow-art" src={brand.reserveArt} width="1254" height="1254" alt="" loading="lazy" decoding="async" /></div>
             <h3>{t.reserveFlow}</h3><p>{t.reserveFlowDescription}</p>
             <a href="#treasury" className="text-link">{t.viewTreasury}<ArrowRight size={16} /></a>
           </article>
           <article className="flow-branch burn-branch">
-            <div className="flow-branch-top"><span className="flow-percentage">0.5<span>%</span></span><Flame size={35} strokeWidth={1.4} /></div>
+            <div className="flow-branch-top"><span className="flow-percentage">0.5<span>%</span></span>
+              <img className="flow-art" src={brand.burnArt} width="1254" height="1254" alt="" loading="lazy" decoding="async" /></div>
             <h3>{t.buybackFlow}</h3><p>{t.buybackFlowDescription}</p>
             <a href="#execution-records" className="text-link">{t.execution}<ArrowRight size={16} /></a>
           </article>

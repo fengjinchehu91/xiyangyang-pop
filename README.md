@@ -108,6 +108,6 @@ npm run preview
 
 ## 素材与视觉
 
-原始 Logo 由用户提供；透明吉祥物和独立山水通过内置 ImageGen 根据该品牌和已选预览图制作。未将完整预览图作为网页背景。来源与提示词见 `public/brand/*-provenance.md`、`docs/assets.md`。英文字体 Manrope 自托管，中文优先使用系统苹方 / 微软雅黑 / Noto Sans SC。
+原始 Logo 由用户提供并继续保留。当前页面配图接入用户桌面素材包 `xiyangyang-web-assets-v1/assets/`，8 张 WebP 按原层级复制到 `public/art-v1/backgrounds/`、`public/art-v1/illustrations/`，共约 1.13 MiB，未重新生成、转换或编辑；包括电脑与手机 Hero 山水、金库与生态背景、点赞吉祥物及机制插画。未将完整预览图作为网页背景。完整来源见 `docs/assets.md`；此前独立生成素材的来源与提示词保留在 `public/brand/*-provenance.md`。英文字体 Manrope 自托管，中文优先使用系统苹方 / 微软雅黑 / Noto Sans SC。
 
 视觉以已选山水预览为品牌依据，并按最新文字要求更新为左右 Hero、暖白/生态绿配色、三指标只读金库；参考图中较早的基金宣传与未核实数据不予沿用。实际检查见 `design-qa.md`。

@@ -6,6 +6,7 @@ import { CopyButton, ExternalLink } from './ui';
 export default function Footer({ t }: { t: Copy }) {
   return <>
     <section className="community-section">
+      <img src={brand.goldCloud} className="community-cloud" width="1536" height="1024" alt="" loading="lazy" decoding="async" />
       <div className="container community-layout">
         <div><h2>{t.community}</h2><p>{t.communitySub}</p>
           <div className="community-links">
@@ -15,7 +16,7 @@ export default function Footer({ t }: { t: Copy }) {
           </div>
           <ExternalLink href={brand.ecosystemXUrl} className="ecosystem-x">{t.x}<span>@Zypher_Network</span><ArrowUpRight size={15} /></ExternalLink>
         </div>
-        <img src={brand.mascot} alt="" width="260" height="260" loading="lazy" className="community-character" />
+        <img src={brand.mascot} alt="" width="1536" height="1024" loading="lazy" decoding="async" className="community-character" />
       </div>
     </section>
     <footer className="site-footer"><div className="container footer-layout">
